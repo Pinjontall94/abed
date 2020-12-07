@@ -1,0 +1,11 @@
+author: "Hewavitharana_19"
+
+primers:
+  fwd: GTGCCAGCMGCCGCGGTAA
+  rev: GGACTACHVGGGTWTCTAAT
+
+offset:
+  fwd: 5
+  rev: 4
+
+phixdb: "phix_db/PhiX_bowtie_db"

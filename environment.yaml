@@ -1,0 +1,10 @@
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - snakemake-minimal >=5.24.1
+  - sra-tools =2.10.0
+  - bbmap >=38.82
+  - cutadapt =2.0
+  - mothur =1.39.5
+  - bowtie2 =2.3.4.1
