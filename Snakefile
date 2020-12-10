@@ -1,21 +1,24 @@
+#TODO: Find a way to extract the sample names line-wise from accession list
+SAMPLES = ["SRR10007909", "SRR10007910"]
+DIRECTION = ["1", "2"]
 
 configfile: "config.yaml"
 
 rule all:
     input:
-        expand("concat/{author}.fasta", author=config["author"])
+        expand("concat/{author}.fasta", author=config["AUTHOR"])
 
-#rule srrMunch:
-#    input:
-#        "SRR10007909"
-#    output:
-#        "fastqs/SRR10007909_1.fastq",
-#        "fastqs/SRR10007909_2.fastq",
-#        "fastqs/SRR10007909.fastq",
-#    log:
-#        "logs/srrMunch/SRR10007909.log"
-#    shell:
-#        "fasterq-dump -o {output} {input}) 2> {log}"
+rule srrMunch:
+    input: "SRR_Acc_List.txt"
+    output:
+        expand("data/{sample}_{direction}.fastq", sample=SAMPLES, direction=DIRECTION)
+    log: "logs/srrMunch/output.log"
+    shell:
+        """
+        (while read line; do
+            fasterq-dump -O data $line
+        done < {input}) 2> {log}
+        """
 
 rule mergeSeqs:
     input:
@@ -46,63 +49,63 @@ rule groupFormatter:
     log:
         "logs/groupFormatter/{author}.log"
     shell:
-        "(./scripts/groupFormatter.sh {author} {output}) 2> {log}"
+        "(./scripts/groupFormatter.sh {wildcards.author} {output}) 2> {log}"
 
 
 rule fwdTrim:
     input:
         "fastas/{sample}.fasta"
     output:
-        temp("trimmed/{sample}.temp.fasta")
+        "fwd_trimmed/{sample}.fasta"
     params:
-        forward=config["primers"]["fwd"]
+        fwd=config["primers"]["FWD"]
     log:
         "logs/fwdTrim/{sample}.fwd.log"
     shell:
-        "(cutadapt -g {params.forward} -o {output} {input} --discard-untrimmed) "
+        "(cutadapt -g {params.fwd} -o {output} {input} --discard-untrimmed) "
         "2> {log}"
 
 rule revTrim:
     input:
-        "trimmed/{sample}.temp.fasta"
+        "fwd_trimmed/{sample}.fasta"
     output:
-        "trimmed/{sample}.fasta"
+        "rev_trimmed/{sample}.fasta"
     params:
-        reverse=config["primers"]["rev"]
+        rev=config["primers"]["REV"]
     log:
         "logs/revTrim/{sample}.rev.log"
     shell:
-        "(cutadapt -a {params.reverse} -o {output} {input} --discard-untrimmed) "
+        "(cutadapt -a {params.rev} -o {output} {input} --discard-untrimmed) "
         "2> {log}"
 
 rule fwdOffset:
     input:
-        "trimmed/{sample}.fasta"
+        "rev_trimmed/{sample}.fasta"
     output:
-        temp("offset/{sample}.temp.fasta")
+        "fwd_offset/{sample}.fasta"
     params:
-        forward=config["offset"]["fwd"]
+        fwd=config["offset"]["FWD"]
     log:
         "logs/fwdOffset/{sample}.log"
     shell:
-        "(cutadapt -u {params.forward} -o {output} {input}) 2> {log}"
+        "(cutadapt -u {params.fwd} -o {output} {input}) 2> {log}"
 
 rule revOffset:
     input:
-        "offset/{sample}.temp.fasta"
+        "fwd_offset/{sample}.fasta"
     output:
-        "offset/{sample}.fasta"
+        "rev_offset/{sample}.fasta"
     params:
-        reverse=config["offset"]["rev"]
+        rev=config["offset"]["REV"]
     log:
         "logs/revOffset/{sample}.log"
     shell:
-        "(cutadapt -u {params.reverse} -o {output} {input}) 2> {log}"
+        "(cutadapt -u {params.rev} -o {output} {input}) 2> {log}"
 
 rule phixScreen:
     input:
-        fasta="offset/{sample}.fasta",
-        db=config["phixdb"]
+        fasta="rev_offset/{sample}.fasta",
+        db=expand("{phixdb}", phixdb=config["phixdb"])
     output:
         fasta="screened/{sample}.fasta",
         phix="screened/{sample}.merged.PhiX",
@@ -110,7 +113,7 @@ rule phixScreen:
     log:
         "logs/phixScreen/{sample}.log"
     shell:
-        "(bowtie2 -f {input.fasta} -x {input.db} "
+        "(bowtie2 -f {input.fasta} -x {input.db}/PhiX_bowtie_db "
         "-S {output.bowtie} "
         "--un {output.fasta} "
         "--al {output.phix}) 2> {log}"
@@ -120,36 +123,37 @@ rule phixAccnos:
     input:
         "screened/{sample}.merged.bowtie"
     output:
-        "screened/PhiX.accnos"
+        "PhiX_out/PhiX.accnos"
     log:
         "logs/phixAccnos/Phix.log"
     shell:
-        "(grep -Eo "[A-Z]{3,6}[0-9]+\.[0-9]+" {input} "
+        '(grep -Eo "[A-Z]{3,6}[0-9]+\.[0-9]+" {input} '
         "| awk -F: '{ print $2 }' >> {output}) 2> {log}"
 
 rule concat:
-    input: "screened/{sample}.fasta"
-    output: "concat/{author}.fasta"
-    log: "logs/concat/{author}.log"
-    shell: "(cat {input} > {output}) 2> {log}"
-
-rule mothurScreen:
-    input:
-        "concat/{author}.fasta",
-        "mothur_in/{author}.groups"
+    input: expand("screened/{sample}.fasta", sample=SAMPLES)
     output:
-        "mothur_out/{author}"
-    shell:
-        "./scripts/mothurScreen.sh"
+        expand("concat/{author}.fasta", author=config["AUTHOR"])
+    log: expand("logs/concat/{author}.log", author=config["AUTHOR"])
+    shell: "(cat {input} >> {output}) 2> {log}"
 
-rule groupSplit:
-    input:
-        "mothur_out/good.fasta"
-    output:
-        "split/{sample}.fasta"
-    shell:
-        "./scripts/groupSplit.sh"
-
+#rule mothurScreen:
+#    input:
+#        fasta="concat/{author}.fasta",
+#        groups="mothur_in/{author}.groups"
+#    output:
+#        "mothur_out/{author}.good.fasta"
+#    shell:
+#        "./scripts/mothurScreen.sh {input.fasta} {input.groups} {output}"
+#
+#rule groupSplit:
+#    input:
+#        "mothur_out/{author}.good.fasta"
+#    output:
+#        "split/{sample}.fasta"
+#    shell:
+#        "./scripts/groupSplit.sh"
+#
 #rule fastaHeaderrelabel:
 #    input:
 #        "split/{sample}.fasta"
