@@ -12,7 +12,7 @@ configfile: "config.yaml"
 rule all:
     input:
         #expand("concat/{author}.fasta", author=config["AUTHOR"])
-        expand("mothur_out/{author}.good.fasta", author=config["AUTHOR"])
+        expand("barcoded/{author}.fasta", author=config["AUTHOR"])
 
 # Download fastqs from NCBI, reading from SRR_Acc_List.txt
 rule srrMunch:
@@ -199,8 +199,8 @@ rule mothurScreen:
 # TODO: Modify groupSplit.sh to work with Snakemake
 rule groupSplit:
     input:
-        fasta="mothur_out/{author}.good.fasta"
-        groups="mothur_in/{author}.groups"
+        fasta=expand("mothur_out/{author}.good.fasta", author=config["AUTHOR"]),
+        groups=expand("mothur_in/{author}.groups", author=config["AUTHOR"])
     output:
         "split/{sample}.fasta"
     shell:
@@ -208,13 +208,13 @@ rule groupSplit:
 
 # Relabel the fastas for compatibility with vsearch
 # TODO: Modify fastaHeaderrelabel.sh to work with Snakemake
-# #rule fastaHeaderrelabel:
-#    input:
-#        "split/{sample}.fasta"
-#    output:
-#        "barcoded/{author}.fasta"
-#    shell:
-#        "./scripts/fastaHeaderrelabel.sh {output} {input}"
+rule fastaHeaderrelabel:
+    input:
+        expand("split/{sample}.fasta", sample=SAMPLES)
+    output:
+        "barcoded/{author}.fasta"
+    shell:
+        "./scripts/fastaHeaderrelabel.sh {output} {input}"
 
 # Reconcatenate fastas to final author-labeled fasta file
 # NOTE: No longer necessary after edits to fastaHeaderrelabel.sh?
