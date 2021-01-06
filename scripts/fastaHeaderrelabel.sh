@@ -14,20 +14,23 @@
 	# INPUT:  $AUTHOR_*.fasta
 	# OUTPUT: *.barcoded.fasta
 
-	for i in ${in_file[@]}; do
-		awk -v NAME_STRIPPED="${i%.fasta}" '{
-			# Count every header line
-			if (/^>/) COUNT+=1 
+OUTPUT=$1
+shift
 
-			# Define new header format
-			VSEARCH_HEADER=">"NAME_STRIPPED"_"COUNT"\;barcodelabel="NAME_STRIPPED"\;"
+for i in $@; do
+	awk -v NAME_STRIPPED="${i%.fasta}" '{
+		# Count every header line
+		if (/^>/) COUNT+=1 
 
-			# Relabel everything after ">" with new header
-			gsub(/^>.*/, VSEARCH_HEADER)
-			print;
-		}' $i > ${i%.fasta}.bar.fasta 2>/dev/null
-	done
+		# Define new header format
+		VSEARCH_HEADER=">"NAME_STRIPPED"_"COUNT"\;barcodelabel="NAME_STRIPPED"\;"
 
-	# Concatenate output files to single barcoded fasta
-	# (also identified by $AUTHOR)
-	cat *.bar.fasta > $AUTHOR.barcoded.fasta
+		# Relabel everything after ">" with new header
+		gsub(/^>.*/, VSEARCH_HEADER)
+		print;
+	}' $i >> $OUTPUT		#${i%.fasta}.bar.fasta 2>/dev/null
+done
+
+# Concatenate output files to single barcoded fasta
+# (also identified by $AUTHOR)
+#cat *.bar.fasta > $AUTHOR.barcoded.fasta

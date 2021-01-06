@@ -11,7 +11,8 @@ configfile: "config.yaml"
 
 rule all:
     input:
-        expand("concat/{author}.fasta", author=config["AUTHOR"])
+        #expand("concat/{author}.fasta", author=config["AUTHOR"])
+        expand("mothur_out/{author}.good.fasta", author=config["AUTHOR"])
 
 # Download fastqs from NCBI, reading from SRR_Acc_List.txt
 rule srrMunch:
@@ -56,9 +57,9 @@ rule q2aReformat:
 # Create group file for mothur, using the merged fastas
 rule groupFormatter:
     input:
-        "fastas/{sample}.fasta"
+        expand("fastas/{sample}.fasta", sample=SAMPLES)
     output:
-        "mothur_in/{author}.group"
+        "mothur_in/{author}.groups"
     log:
         "logs/groupFormatter/{author}.log"
     shell:
@@ -66,6 +67,11 @@ rule groupFormatter:
         (./scripts/groupFormatter.sh {wildcards.author} {output}) 2> {log}
         """
 
+#TODO: Use input functions & config file to clean up the next four rules
+#       (as well as letting the offset rules be optional)
+#
+#TODO: fwdTrim fails on the 1st clean run? Pipeline works after re-running,
+#       figure out what's going on
 # Trim 5' primers (specified in config file) with cutadapt
 rule fwdTrim:
     input:
@@ -150,18 +156,18 @@ rule phixScreen:
         """
 
 # Generate list of accession numbers with PhiX contamination (if present)
-#TODO: Figure out if this works as expected...
+# NOTE: Used {sample}.merged.bowtie...shouldn't this be screening
+#   {sample}.merged.PhiX files instead?
 rule phixAccnos:
     input:
-        "screened/{sample}.merged.bowtie"
+        expand("screened/{sample}.merged.PhiX", sample=SAMPLES)
     output:
         "PhiX_out/PhiX.accnos"
     log:
         "logs/phixAccnos/Phix.log"
     shell:
         """
-        (grep -Eo "[A-Z]{3,6}[0-9]+\.[0-9]+" {input} | awk -F: '{ print $2 }' \
-            >> {output}) 2> {log}
+        (./scripts/phixContam.sh {output} {input}) 2> {log}
         """
 
 # Concatenate fastas, label with the study's author name (from config file)
@@ -175,49 +181,43 @@ rule concat:
         (cat {input} >> {output}) 2> {log}
         """
 
-def phix_contam(wildcards):
-    # decision based on content of output file
-    # Important: use the method open() of the returned file!
-    # This way, Snakemake is able to automatically download the file if it is generated in
-    # a cloud environment without a shared filesystem.
-    with checkpoints.phixAccnos.get(sample=wildcards.sample).output[0].open() as f:
-        if f.read().strip() == "a":
-            return "PhiX_out/PhiX.accnos"
-        else:
-            return ""
-
 # Screen fasta file with mothur
-#rule mothurScreen:
-#    input:
-#        fasta="concat/{author}.fasta",
-#        groups="mothur_in/{author}.groups"
-#        phix_contam
-#    output:
-#        "mothur_out/{author}.good.fasta"
-#    shell:
-#        """
-#        (./scripts/mothurScreen.sh {input.fasta} {input.groups} {input.phix} {output}) 2> {log}
-#        """
-#
+rule mothurScreen:
+    input:
+        fasta="concat/{author}.fasta",
+        groups="mothur_in/{author}.groups",
+        phix="PhiX_out/PhiX.accnos"
+    output:
+        "mothur_out/{author}.good.fasta"
+    log: "logs/mothurScreen/{author}.log"
+    shell:
+        """
+        (./scripts/mothurScreen.sh {input.fasta} {input.groups} {input.phix} {output}) 2> {log}
+        """
+
 # Split the screened fasta back into separate files with the group file
-#rule groupSplit:
-#    input:
-#        "mothur_out/{author}.good.fasta"
-#    output:
-#        "split/{sample}.fasta"
-#    shell:
-#        "./scripts/groupSplit.sh"
-#
+# TODO: Modify groupSplit.sh to work with Snakemake
+rule groupSplit:
+    input:
+        fasta="mothur_out/{author}.good.fasta"
+        groups="mothur_in/{author}.groups"
+    output:
+        "split/{sample}.fasta"
+    shell:
+        "./scripts/groupSplit.sh {input.fasta} {input.groups} {output}"
+
 # Relabel the fastas for compatibility with vsearch
-#rule fastaHeaderrelabel:
+# TODO: Modify fastaHeaderrelabel.sh to work with Snakemake
+# #rule fastaHeaderrelabel:
 #    input:
 #        "split/{sample}.fasta"
 #    output:
-#        "barcoded/{author}.bar.fasta"
+#        "barcoded/{author}.fasta"
 #    shell:
-#        "./scripts/fastaHeaderrelabel.sh"
+#        "./scripts/fastaHeaderrelabel.sh {output} {input}"
 
 # Reconcatenate fastas to final author-labeled fasta file
+# NOTE: No longer necessary after edits to fastaHeaderrelabel.sh?
 #rule finalConcat:
 #    input: expand("barcoded/{sample}.barcoded.fasta", sample=SAMPLES)
 #    output: "final/{author}.fasta"
