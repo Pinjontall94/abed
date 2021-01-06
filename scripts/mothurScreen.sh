@@ -1,5 +1,6 @@
 #!/bin/bash
 
+#TODO: Add 3rd arg to accept PhiX.accnos (if it exists) for snakemake compatibility
 #mothurScreen
 # Runs mothur against screening_batch.txt to screen concat'd fasta
 
@@ -44,5 +45,5 @@ else
 	rm screening_batch.txt
 fi
 
-# Rename output file with 3rd argument
+# Rename output file with 4th argument
 #mv 
