@@ -55,6 +55,8 @@ rule q2aReformat:
         """
 
 # Create group file for mothur, using the merged fastas
+# TODO: Modify shell script so it doesn't move files (cutadapt rules fail because
+#           groupFormatter.sh temporarily moves input files to $PWD)
 rule groupFormatter:
     input:
         expand("fastas/{sample}.fasta", sample=SAMPLES)
@@ -64,14 +66,12 @@ rule groupFormatter:
         "logs/groupFormatter/{author}.log"
     shell:
         """
-        (./scripts/groupFormatter.sh {wildcards.author} {output}) 2> {log}
+        (./scripts/groupFormatter.sh {wildcards.author} {output} {input}) 2> {log}
         """
 
 #TODO: Use input functions & config file to clean up the next four rules
 #       (as well as letting the offset rules be optional)
 #
-#TODO: fwdTrim fails on the 1st clean run? Pipeline works after re-running,
-#       figure out what's going on
 # Trim 5' primers (specified in config file) with cutadapt
 rule fwdTrim:
     input:

@@ -11,9 +11,18 @@ AUTHOR=$1
 # Set Output file
 OUTPUT=$2
 
+# Shift to allow use of $@ argument for fasta inputs
+shift 2
+
+# Populate the raw_fastas array with the remaining arguments
+for i in $@; do
+	raw_fastas+=("$i")
+done
+
 joinBy(){
 	# Takes first argument as new delimiter, then echoes all following
-	# 	arguments with that delimiter
+	# 	arguments with that delimiter (by temporarily manipulating
+	# 	the Input Field Separator)
 	# Usage: joinBy <separator> <arg1> [...] <argN>
 
 	OIFS=$IFS
@@ -27,11 +36,11 @@ joinBy(){
 
 
 # Move fastas into working directory and add to 'raw' array
-mv fastas/*.fasta .
+#mv fastas/*.fasta .
 
-for i in *.fasta; do
-	raw_fastas+=("$i")
-done
+#for i in *.fasta; do
+#	raw_fastas+=("$i")
+#done
 
 
 # Create hyphen-delimited lists for fastas and groups
@@ -48,4 +57,4 @@ group_params=("fasta=$formatter_fastas," "groups=$formatter_groups,"\
 mothur <(./scripts/mothurBatch.sh make group "${group_params[*]}")
 
 # Move fastas back to the 'fastas' folder
-mv *.fasta fastas
+#mv *.fasta fastas
