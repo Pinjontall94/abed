@@ -12,13 +12,18 @@
 # 		<PhiX accnos path> <output filename>
 
 # Move screen fasta, groupfile, and PhiX.accnos to working directory
-mv $1 $2 $3 -t .
+#mv $1 $2 $3 -t .
 
-concat_fasta=${1##*/}
-screen_groups=${2##*/}
+# Specify output directory and output files
+OUTPUT_DIR=${4%*/}
+OUTPUT_FILE=${4##*/}
+
+concat_fasta=$1 #${1##*/}
+screen_groups=$2 #${2##*/}
+phix_accnos=$3
 
 # Remove PhiX contamination
-if [[ -s $3 ]]; then
+if [[ -s $phix_accnos ]]; then
 	remove_params=("fasta=$concat_fasta,"\
 		"group=$screen_groups,"\	# Not needed by mothur?
 		"accnos=PhiX.accnos")
@@ -34,7 +39,7 @@ if [[ ! $concat_fasta ]] || [[ ! $screen_groups ]]; then
 else
 	screen_params=("fasta=$concat_fasta," "group=$screen_groups,"\
 		"minlength=200," "maxlength=300," "maxambig=0,"\
-		"maxhomop=8")
+		"maxhomop=8," "outputdir=$OUTPUT_DIR," "output=$OUTPUT_FILE")
 	summary_params=("fasta=current," "processors=$THREADS")
 	./scripts/mothurBatch.sh screen seqs "${screen_params[*]}" > screening_batch.txt
 	./scripts/mothurBatch.sh summary seqs "${summary_params[*]}" >> screening_batch.txt
@@ -47,9 +52,9 @@ else
 fi
 
 # Move input fastas and group file back to original directories
-mv $1 -t screened
-mv $2 -t mothur_in
-mv $3 -t PhiX_out
+#mv $1 -t screened
+#mv $2 -t mothur_in
+#mv $3 -t PhiX_out
 
 # Rename output file with 4th argument
-mv *.good.fasta $4
+#mv *.good.fasta $4

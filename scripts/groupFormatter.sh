@@ -3,13 +3,17 @@
 #groupFormatter
 # Description: Scans 'fastas' directory for .fasta files, and
 #              formats them for use with Mothur's 'make.group()' command
+# Usage:
+# 	groupFormatter.sh <author> <output dir/output file> <fasta 1> [...] <fasta N>
 
 
 # Set Study Author Name (for snakemake compatibility)
 AUTHOR=$1
 
-# Set Output file
-OUTPUT=$2
+# Set output dir and output filename from 2nd argument
+# 	(mothur needs them specified separately)
+OUTPUT_DIR=${2%/*} # Take everything left of the first '/'
+OUTPUT_FILE=${2##*/} # Take everything after the last '/'
 
 # Shift to allow use of $@ argument for fasta inputs
 shift 2
@@ -20,10 +24,10 @@ for i in $@; do
 done
 
 joinBy(){
-	# Takes first argument as new delimiter, then echoes all following
-	# 	arguments with that delimiter (by temporarily manipulating
+	# Description: Takes first argument as new delimiter, then echoes all
+	# 	following arguments with that delimiter (by temporarily manipulating
 	# 	the Input Field Separator)
-	# Usage: joinBy <separator> <arg1> [...] <argN>
+	# Usage: joinBy <separator> <arg 1> [...] <arg N>
 
 	OIFS=$IFS
 	IFS=$1
@@ -35,14 +39,6 @@ joinBy(){
 }
 
 
-# Move fastas into working directory and add to 'raw' array
-#mv fastas/*.fasta .
-
-#for i in *.fasta; do
-#	raw_fastas+=("$i")
-#done
-
-
 # Create hyphen-delimited lists for fastas and groups
 formatter_fastas=$(joinBy - ${raw_fastas[*]})
 for i in ${raw_fastas[@]}; do
@@ -52,9 +48,9 @@ formatter_groups=$(joinBy - ${group_array[*]})
 
 
 # Set mothur command parameters and run mothur
-group_params=("fasta=$formatter_fastas," "groups=$formatter_groups,"\
-	"output=$OUTPUT")
-mothur <(./scripts/mothurBatch.sh make group "${group_params[*]}")
+group_params=("fasta=$formatter_fastas," "groups=$formatter_groups,"
+	"outputdir=$OUTPUT_DIR,"  "output=$OUTPUT_FILE")
 
-# Move fastas back to the 'fastas' folder
-#mv *.fasta fastas
+
+# Run Mothur make.group on selected fastas
+mothur <(./scripts/mothurBatch.sh make group "${group_params[*]}")
