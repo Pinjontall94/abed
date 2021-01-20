@@ -55,4 +55,4 @@ group_params=("fasta=$formatter_fastas," "groups=$formatter_groups,"
 # Run Mothur make.group on selected fastas
 mothur <(./scripts/mothurBatch.sh make group "${group_params[*]}")
 
-sed -i "s/$AUTHOR\_fastas\///" $2
+sed -i "s/$AUTHOR\_fastas\///" $OUTPUT_DIR/$OUTPUT_FILE

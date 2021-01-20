@@ -11,9 +11,7 @@ configfile: "config.yaml"
 
 rule all:
     input:
-        #expand("concat/{author}.fasta", author=config["AUTHOR"])
         expand("barcoded/{author}.fasta", author=config["AUTHOR"])
-        #expand("mothur_out/{author}.good.fasta", author=config["AUTHOR"])
 
 # Download fastqs from NCBI, reading from SRR_Acc_List.txt
 rule srrMunch:
