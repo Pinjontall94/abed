@@ -6,23 +6,22 @@
 
 GOOD_FASTA=$1
 GOOD_GROUPS=$2
-shift 2
-OUTPUT=$@
+OUTPUT_DIR=$3
+
 
 echo "GOOD_FASTA=$GOOD_FASTA, GOOD_GROUPS=$GOOD_GROUPS"
 
 split_params=("fasta=$GOOD_FASTA,"\
-	"group=$GOOD_GROUPS")
+	"group=$GOOD_GROUPS," "outputdir=$OUTPUT_DIR")
 mothur <(./scripts/mothurBatch.sh split groups "${split_params[*]}")
 
 # Rename output fastas to reasonable names
-for i in *.fasta; do
+for i in $OUTPUT_DIR; do
 	if [[ $i =~ ".$AUTHOR" ]]; then
 		# Remove everything up to "concat."
 		# (i.e. result: author_year_accno.fasta)
 		echo "Renaming output files to"\
 			"format: author_year_accno.fasta"
-		mv -v $i $1 #${i#*good.}
-		shift
+		mv -v $i ${i//.good./_}
 	fi
 done

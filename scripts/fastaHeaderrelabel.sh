@@ -1,6 +1,7 @@
 #!/bin/bash
 
 #fastaHeaderrelabel
+#TODO: Update usage statement
 	# Takes a fasta file labeled <author>_<year>_<accno>.fasta
 	# 	and relabels headers for use with vsearch
 	#
@@ -18,7 +19,7 @@ OUTPUT=$1
 shift
 
 for i in $@; do
-	awk -v NAME_STRIPPED="${i%.fasta}" '{
+	awk -v NAME_STRIPPED="$(basename $i .fasta)" '{
 		# Count every header line
 		if (/^>/) COUNT+=1 
 
@@ -31,6 +32,7 @@ for i in $@; do
 	}' $i >> $OUTPUT		#${i%.fasta}.bar.fasta 2>/dev/null
 done
 
-# Concatenate output files to single barcoded fasta
-# (also identified by $AUTHOR)
-#cat *.bar.fasta > $AUTHOR.barcoded.fasta
+# Remove the ".good" extension from the naming scheme (TODO: check if there's
+# 	some way to keep mothur from naming them that way in the first place in
+# 	groupSplit.sh)
+sed -i "s/\.good\./_/g" $OUTPUT

@@ -15,7 +15,7 @@
 #mv $1 $2 $3 -t .
 
 # Specify output directory and output files
-OUTPUT_DIR=${4%*/}
+OUTPUT_DIR=${4%/*}
 OUTPUT_FILE=${4##*/}
 
 concat_fasta=$1 #${1##*/}
@@ -28,7 +28,6 @@ if [[ -s $phix_accnos ]]; then
 		"group=$screen_groups,"\	# Not needed by mothur?
 		"accnos=PhiX.accnos")
 	mothur <(./scripts/mothurBatch.sh remove seqs "${remove_params[*]}")
-	#rm -v phix_batch.txt
 else
 	echo "PhiX.accnos is empty, skipping..."
 fi
@@ -39,8 +38,8 @@ if [[ ! $concat_fasta ]] || [[ ! $screen_groups ]]; then
 else
 	screen_params=("fasta=$concat_fasta," "group=$screen_groups,"\
 		"minlength=200," "maxlength=300," "maxambig=0,"\
-		"maxhomop=8," "outputdir=$OUTPUT_DIR," "output=$OUTPUT_FILE")
-	summary_params=("fasta=current," "processors=$THREADS")
+		"maxhomop=8," "outputdir=$OUTPUT_DIR") # "output=$OUTPUT_FILE")
+	summary_params=("fasta=current") # "processors=$THREADS")
 	./scripts/mothurBatch.sh screen seqs "${screen_params[*]}" > screening_batch.txt
 	./scripts/mothurBatch.sh summary seqs "${summary_params[*]}" >> screening_batch.txt
 	./scripts/mothurBatch.sh count groups "group=current" >> screening_batch.txt 

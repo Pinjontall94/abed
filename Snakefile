@@ -11,8 +11,9 @@ configfile: "config.yaml"
 
 rule all:
     input:
-        expand("concat/{author}.fasta", author=config["AUTHOR"])
-        #expand("barcoded/{author}.fasta", author=config["AUTHOR"])
+        #expand("concat/{author}.fasta", author=config["AUTHOR"])
+        expand("barcoded/{author}.fasta", author=config["AUTHOR"])
+        #expand("mothur_out/{author}.good.fasta", author=config["AUTHOR"])
 
 # Download fastqs from NCBI, reading from SRR_Acc_List.txt
 rule srrMunch:
@@ -202,26 +203,26 @@ rule groupSplit:
         fasta=expand("mothur_out/{author}.good.fasta", author=config["AUTHOR"]),
         groups=expand("mothur_in/{author}.groups", author=config["AUTHOR"])
     output:
-        "split/{sample}.fasta"
+        "split/{author}.good.{sample}.fasta"
     shell:
-        "./scripts/groupSplit.sh {input.fasta} {input.groups} {output}"
+        "./scripts/groupSplit.sh {input.fasta} {input.groups} split"
+
+#rule goodGone:
+#    input:
+#        fastas=expand("split/{author}.good.{sample}.fasta", sample=SAMPLES, author=config["AUTHOR"])
+#    output:
+#        "split/{author}_{sample}.fasta"
+#    shell:
+#        """
+#        ./scripts/goodGone.sh {input}
+#        """
 
 # Relabel the fastas for compatibility with vsearch
 # TODO: Modify fastaHeaderrelabel.sh to work with Snakemake
 rule fastaHeaderrelabel:
     input:
-        expand("split/{sample}.fasta", sample=SAMPLES)
+        expand("split/{author}.good.{sample}.fasta", sample=SAMPLES, author=config["AUTHOR"])
     output:
         "barcoded/{author}.fasta"
     shell:
         "./scripts/fastaHeaderrelabel.sh {output} {input}"
-
-# Reconcatenate fastas to final author-labeled fasta file
-# NOTE: No longer necessary after edits to fastaHeaderrelabel.sh?
-#rule finalConcat:
-#    input: expand("barcoded/{sample}.barcoded.fasta", sample=SAMPLES)
-#    output: "final/{author}.fasta"
-#    shell:
-#        """
-#        (cat {input} > {output}) 2> {log}
-#        """
