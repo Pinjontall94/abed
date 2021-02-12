@@ -9,3 +9,9 @@ offset:
   REV: 4
 
 phixdb: "phix_db"
+
+THREADS: 8
+
+taxonomy:
+  template: silva_v138_mothur/silva.nr_v138.ng.fasta
+  tax: silva_v138_mothur/silva.nr_v138.tax

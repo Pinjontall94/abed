@@ -11,7 +11,8 @@ configfile: "config.yaml"
 
 rule all:
     input:
-        expand("barcoded/{author}.fasta", author=config["AUTHOR"])
+        #expand("barcoded/{author}.fasta", author=config["AUTHOR"])
+        "metaan.otus.final.readmap.table"
 
 # Download fastqs from NCBI, reading from SRR_Acc_List.txt
 rule srrMunch:
@@ -223,7 +224,7 @@ rule fastaHeaderrelabel:
 
 #rule otuGen:
 #    input:
-#        "barcoded/metaan.fasta"
+#        expand("barcoded/{author}.fasta", author=config["AUTHOR"])
 #    output:
 #        "metaan.otus.final.readmap.table"
 #    log: "logs/otuGen/metaan.log"
@@ -232,26 +233,27 @@ rule fastaHeaderrelabel:
 #        (./scripts/otuGen -d silva_v138_mothur -f {input}) 2> {log}
 #        """
 
-## Dereplicate the barcoded fasta
-##
-## Poret-Peterson:
-## "Singletons (OTUs represented 1 sequence) are discarded
-## via the --minuniquesize command; setting this to 2 would
-## generate OTUs represented by 2 or more sequences"
-#rule derep:
-#    input:
-#        expand("barcoded/{author}.fasta", author=config["AUTHOR"])
-#    output: "derep/{author}.fasta"
-#    params:
-#        unique_size=2
-#    log: "logs/derep/{author}.log"
-#    shell:
-#        """
-#        (vsearch --derep_fulllength {input} \
-#        --sizein --sizeout --minuniquesize {params.unique_size} \
-#        --output {output}) 2> {log}
-#        """
+# Dereplicate the barcoded fasta
 #
+# Poret-Peterson:
+# "Singletons (OTUs represented 1 sequence) are discarded
+# via the --minuniquesize command; setting this to 2 would
+# generate OTUs represented by 2 or more sequences"
+rule derep:
+    input:
+        expand("barcoded/{author}.fasta", author=config["AUTHOR"])
+    output: "derep/{author}.fasta"
+    params:
+        unique_size=2
+    log: "logs/derep/{author}.log"
+    shell:
+        """
+        (vsearch --derep_fulllength {input} \
+        --sizein --sizeout --minuniquesize {params.unique_size} \
+        --output {output}) 2> {log}
+        """
+
+
 ##   # Cluster seqs into OTUs
 ##   #
 ##   # Poret-Peterson:
